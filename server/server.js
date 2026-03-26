@@ -74,8 +74,13 @@ try {
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { origin: "*" });
-app.use(cors());
+const io = new Server(server, { 
+  cors: { 
+    origin: "*", 
+    methods: ["GET", "POST"]
+  } 
+});
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
