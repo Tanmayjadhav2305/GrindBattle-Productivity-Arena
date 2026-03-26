@@ -18,25 +18,40 @@ try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT && !admin.apps.length) {
     let rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
     
-    // Support Base64 encoding (Recommended for Render)
+    // 1. Handle Base64 (The most reliable for Render/Vercel)
     if (!rawConfig.startsWith('{') && !rawConfig.startsWith("'") && !rawConfig.startsWith('"')) {
       try {
         rawConfig = Buffer.from(rawConfig, 'base64').toString('utf8');
       } catch (e) {
-        console.error('Failed to decode Base64 FIREBASE_SERVICE_ACCOUNT');
+        console.error('FIREBASE: Failed to decode Base64');
       }
     }
 
+    // 2. Clear surrounding quotes
     if (rawConfig.startsWith("'") || rawConfig.startsWith('"')) {
       rawConfig = rawConfig.substring(1, rawConfig.length - 1);
     }
     
-    const serviceAccount = JSON.parse(rawConfig.replace(/\\n/g, '\n'));
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('🔥 FIREBASE ADMIN INITIALIZED 🔥');
+    // 3. Fix escaped newlines (The #1 cause of "Bad escaped character")
+    // This handles both \\n and literal newlines
+    rawConfig = rawConfig.replace(/\\n/g, '\n');
+
+    try {
+      const serviceAccount = JSON.parse(rawConfig);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log('🔥 FIREBASE ADMIN INITIALIZED 🔥');
+    } catch (parseError) {
+      console.error('FIREBASE: JSON Parse failed after cleanup. Trying manual fix...');
+      // Final attempt: if it's still failing, it might be the private_key specifically
+      // We can try to extract the private key if it's the only one with newlines
+      const fixedConfig = rawConfig.replace(/\n/g, '\\n');
+      admin.initializeApp({
+        credential: admin.credential.cert(JSON.parse(fixedConfig))
+      });
+      console.log('🔥 FIREBASE ADMIN INITIALIZED (MANUAL FIX) 🔥');
+    }
   } else if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
     console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT not found in env. Notifications disabled.');
   }
