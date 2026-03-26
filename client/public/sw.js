@@ -9,15 +9,50 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Handle Background Messages (from Firebase)
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/grind_battle_pwa_icon.png'
+  console.log('[sw.js] Background message ', payload);
+  const title = payload.notification?.title || '⚔️ Arena Update';
+  const options = {
+    body: payload.notification?.body || 'New activity logged!',
+    icon: '/grind_battle_pwa_icon.png',
+    badge: '/grind_battle_pwa_icon.png'
+  };
+  self.registration.showNotification(title, options);
+});
+
+// Handle Generic Push (for DevTools button and other sources)
+self.addEventListener('push', (event) => {
+  console.log('[sw.js] Manual Push event received');
+  let data = { title: '⚔️ Arena Update', body: 'New activity in the battlefield!' };
+  
+  if (event.data) {
+    try {
+      data = event.data.json().notification || event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/grind_battle_pwa_icon.png',
+    badge: '/grind_battle_pwa_icon.png',
+    vibrate: [100, 50, 100],
+    data: { dateOfArrival: Date.now() }
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  event.waitUntil(
+    self.registration.showNotification(data.title || '⚔️ Arena Update', options)
+  );
+});
+
+// Handle Notification Clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('/')
+  );
 });
 
 const CACHE_NAME = 'grind-battle-v1';
