@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Clock, BookOpen, Send, CheckCircle } from 'lucide-react';
 
-const LogForm = ({ user, onComplete }) => {
+const LogForm = ({ user, onComplete, setupNotifications }) => {
   const [hours, setHours] = useState('');
   const [category, setCategory] = useState('Web Dev');
   const [task, setTask] = useState('');
@@ -21,6 +21,12 @@ const LogForm = ({ user, onComplete }) => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      // Trigger notification setup if not already enabled
+      if (setupNotifications) {
+        setupNotifications();
+      }
+
       setSuccess(true);
       setTimeout(() => onComplete(), 1500);
     } catch (err) {

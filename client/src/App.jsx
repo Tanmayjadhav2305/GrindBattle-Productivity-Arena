@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
+import { requestForToken, onMessageListener } from './firebase';
 import BottomNav from './components/Navigation/BottomNav';
 import Login from './components/Login';
 import Register from './components/Auth/Register';
@@ -38,8 +39,49 @@ function App() {
   const [activeTab, setActiveTab] = useState('arena');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) setShowWelcome(false);
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await axios.get('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUser(res.data.user);
+          setShowWelcome(false);
+        } catch (err) {
+          console.error('Session restoration failed:', err);
+          handleLogout();
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const setupNotifications = async () => {
+    if (!user) return;
+    const token = await requestForToken();
+    if (token) {
+      try {
+        const authToken = localStorage.getItem('token');
+        await axios.post('/api/auth/fcm-token', 
+          { fcmToken: token }, 
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        console.log('FCM Token registered on backend');
+        // Update local user state to reflect token presence
+        setUser(prev => ({ ...prev, hasNotifications: true }));
+      } catch (err) {
+        console.error('Failed to register FCM token:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    onMessageListener()
+      .then((payload) => {
+        console.log('New foreground message:', payload);
+      })
+      .catch((err) => console.log('Messaging failed: ', err));
   }, []);
 
   useEffect(() => {
@@ -136,7 +178,7 @@ function App() {
       case 'my-stats':
         return <PersonalStats user={userData} />;
       case 'log':
-        return <LogForm user={user} onComplete={() => setActiveTab('my-stats')} />;
+        return <LogForm user={user} onComplete={() => setActiveTab('my-stats')} setupNotifications={setupNotifications} />;
       case 'profile':
         return (
           <div className="clay-card p-3">
@@ -152,6 +194,11 @@ function App() {
               <p className="text-dim">Room Code: {roomCode}</p>
               
               <div className="profile-actions-clay mt-2">
+                {!user.hasNotifications && (
+                  <button className="clay-btn primary-btn" onClick={setupNotifications} style={{ background: 'var(--success)' }}>
+                    🔔 Enable Notifications
+                  </button>
+                )}
                 <button className="clay-btn primary-btn" onClick={() => setShowCustomizer(true)}>
                   🌟 Customize Identity
                 </button>

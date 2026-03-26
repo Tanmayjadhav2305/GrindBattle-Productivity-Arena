@@ -8,13 +8,14 @@ const userSchema = new mongoose.Schema({
   totalPoints: { type: Number, default: 0 },
   currentStreak: { type: Number, default: 0 },
   lastActiveDate: { type: String }, // YYYY-MM-DD
-  momentum: { 
-    type: String, 
-    enum: ['Stable', 'Rising', 'On Fire', 'Dropping'], 
-    default: 'Stable' 
+  momentum: {
+    type: String,
+    enum: ['Stable', 'Rising', 'On Fire', 'Dropping'],
+    default: 'Stable'
   },
   avatarSeed: { type: String, default: () => Math.random().toString(36).substring(7) },
-  weeklyTrophies: { type: Number, default: 0 }
+  weeklyTrophies: { type: Number, default: 0 },
+  fcmTokens: [{ type: String }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
