@@ -18,8 +18,18 @@ try {
   if (!admin.apps.length) {
     let serviceAccount;
 
-    // Option A: Individual Variables (Most reliable for Render)
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    // 1. Explicit Base64 (User's preferred method)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+      try {
+        const rawJson = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+        serviceAccount = JSON.parse(rawJson);
+        console.log('🔥 FIREBASE: Using BASE64 environment variable');
+      } catch (e) {
+        console.error('FIREBASE: Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64');
+      }
+    } 
+    // 2. Individual Variables (Robust fallback)
+    else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
       serviceAccount = {
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -27,33 +37,25 @@ try {
       };
       console.log('🔥 FIREBASE: Using individual environment variables');
     } 
-    // Option B: JSON String / Base64 (Existing logic)
+    // 3. Raw JSON / Auto-detect Base64 (Standard fallback)
     else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       let rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
       
-      // Handle Base64
+      // Auto-detect if it's Base64
       if (!rawConfig.startsWith('{') && !rawConfig.startsWith("'") && !rawConfig.startsWith('"')) {
         try {
           rawConfig = Buffer.from(rawConfig, 'base64').toString('utf8');
-        } catch (e) {
-          console.error('FIREBASE: Failed to decode Base64');
-        }
+        } catch (e) {}
       }
 
-      // Clear surrounding quotes
       if (rawConfig.startsWith("'") || rawConfig.startsWith('"')) {
         rawConfig = rawConfig.substring(1, rawConfig.length - 1);
       }
       
-      // Fix escaped newlines
-      rawConfig = rawConfig.replace(/\\n/g, '\n');
-
       try {
-        serviceAccount = JSON.parse(rawConfig);
+        serviceAccount = JSON.parse(rawConfig.replace(/\\n/g, '\n'));
       } catch (parseError) {
-        console.error('FIREBASE: JSON Parse failed after cleanup. Trying manual fix...');
-        const fixedConfig = rawConfig.replace(/\n/g, '\\n');
-        serviceAccount = JSON.parse(fixedConfig);
+        serviceAccount = JSON.parse(rawConfig.replace(/\n/g, '\\n'));
       }
     }
 
