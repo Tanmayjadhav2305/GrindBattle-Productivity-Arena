@@ -15,45 +15,56 @@ const admin = require('firebase-admin');
 
 // Firebase Admin initialization
 try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT && !admin.apps.length) {
-    let rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
-    
-    // 1. Handle Base64 (The most reliable for Render/Vercel)
-    if (!rawConfig.startsWith('{') && !rawConfig.startsWith("'") && !rawConfig.startsWith('"')) {
+  if (!admin.apps.length) {
+    let serviceAccount;
+
+    // Option A: Individual Variables (Most reliable for Render)
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '')
+      };
+      console.log('🔥 FIREBASE: Using individual environment variables');
+    } 
+    // Option B: JSON String / Base64 (Existing logic)
+    else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      let rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      
+      // Handle Base64
+      if (!rawConfig.startsWith('{') && !rawConfig.startsWith("'") && !rawConfig.startsWith('"')) {
+        try {
+          rawConfig = Buffer.from(rawConfig, 'base64').toString('utf8');
+        } catch (e) {
+          console.error('FIREBASE: Failed to decode Base64');
+        }
+      }
+
+      // Clear surrounding quotes
+      if (rawConfig.startsWith("'") || rawConfig.startsWith('"')) {
+        rawConfig = rawConfig.substring(1, rawConfig.length - 1);
+      }
+      
+      // Fix escaped newlines
+      rawConfig = rawConfig.replace(/\\n/g, '\n');
+
       try {
-        rawConfig = Buffer.from(rawConfig, 'base64').toString('utf8');
-      } catch (e) {
-        console.error('FIREBASE: Failed to decode Base64');
+        serviceAccount = JSON.parse(rawConfig);
+      } catch (parseError) {
+        console.error('FIREBASE: JSON Parse failed after cleanup. Trying manual fix...');
+        const fixedConfig = rawConfig.replace(/\n/g, '\\n');
+        serviceAccount = JSON.parse(fixedConfig);
       }
     }
 
-    // 2. Clear surrounding quotes
-    if (rawConfig.startsWith("'") || rawConfig.startsWith('"')) {
-      rawConfig = rawConfig.substring(1, rawConfig.length - 1);
-    }
-    
-    // 3. Fix escaped newlines (The #1 cause of "Bad escaped character")
-    // This handles both \\n and literal newlines
-    rawConfig = rawConfig.replace(/\\n/g, '\n');
-
-    try {
-      const serviceAccount = JSON.parse(rawConfig);
+    if (serviceAccount) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
       console.log('🔥 FIREBASE ADMIN INITIALIZED 🔥');
-    } catch (parseError) {
-      console.error('FIREBASE: JSON Parse failed after cleanup. Trying manual fix...');
-      // Final attempt: if it's still failing, it might be the private_key specifically
-      // We can try to extract the private key if it's the only one with newlines
-      const fixedConfig = rawConfig.replace(/\n/g, '\\n');
-      admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(fixedConfig))
-      });
-      console.log('🔥 FIREBASE ADMIN INITIALIZED (MANUAL FIX) 🔥');
+    } else {
+      console.warn('⚠️ FIREBASE credentials not found. Notifications disabled.');
     }
-  } else if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT not found in env. Notifications disabled.');
   }
 } catch (err) {
   console.error('❌ FIREBASE INITIALIZATION ERROR:', err.message);
