@@ -1,0 +1,162 @@
+/* GrindBattle UI Enhancements */
+.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+}
+
+.left-panel, .right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Race Track */
+.race-track {
+  padding: 2rem;
+}
+
+.race-lane {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.track {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  position: relative;
+  margin: 1rem 0;
+}
+
+.car {
+  position: absolute;
+  top: -15px;
+  font-size: 1.5rem;
+  z-index: 2;
+}
+
+.exhaust-flame {
+  width: 10px;
+  height: 5px;
+  background: orange;
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  border-radius: 50%;
+  box-shadow: 0 0 10px orange;
+  opacity: 0.6;
+}
+
+/* Forms & Inputs */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input, select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  color: white;
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 5px var(--primary);
+}
+
+.momentum-tag {
+  background: var(--glass);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+.momentum-badge {
+  margin-top: 1rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+.rising { color: #10b981; }
+.dropping { color: #ef4444; }
+
+/* Login Screen */
+.login-screen {
+  text-align: center;
+  max-width: 600px;
+  margin: 5rem auto;
+}
+
+.user-grid {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.user-card {
+  cursor: pointer;
+  transition: transform 0.3s;
+  width: 150px;
+}
+
+.user-card:hover {
+  transform: scale(1.05);
+}
+
+.vs {
+  display: flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  opacity: 0.5;
+}
+
+.compare-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.competitor {
+  text-align: center;
+}
