@@ -254,7 +254,6 @@ app.post('/api/log', auth, async (req, res) => {
 
     // Emit only to room
     const users = await User.find({ roomCode: user.roomCode });
-    const today = new Date().toISOString().split('T')[0];
     const logsToday = await DailyLog.find({ date: today });
     const dashboardData = users.map(u => ({
       ...u.toObject(),
