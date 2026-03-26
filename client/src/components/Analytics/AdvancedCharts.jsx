@@ -9,7 +9,7 @@ const AdvancedCharts = ({ username, userId }) => {
     const fetchAnalytics = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:5000/api/analytics/${userId}`, {
+        const res = await axios.get(`/api/analytics/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setData(res.data);

@@ -26,3 +26,5 @@ yarn-error.log*
 # Brain/Artifacts (if you want to keep them local)
 .gemini/
 brain/
+
+.vercel

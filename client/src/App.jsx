@@ -15,8 +15,9 @@ import Welcome from './components/Welcome';
 import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 
-const socket = io('http://localhost:5000');
-axios.defaults.baseURL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || '';
+const socket = io(API_URL);
+axios.defaults.baseURL = API_URL;
 
 const getAchievements = (user) => {
   const achievements = [];
@@ -58,7 +59,7 @@ function App() {
       if (!user || !roomCode) return;
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/dashboard', {
+        const res = await axios.get('/api/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setDashboardData(res.data);

@@ -15,7 +15,7 @@ const AvatarCustomizer = ({ user, onUpdate, onClose }) => {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/profile/update', { avatarSeed: seed }, {
+      const res = await axios.post('/api/profile/update', { avatarSeed: seed }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onUpdate(res.data.user);

@@ -14,7 +14,7 @@ const LogForm = ({ user, onComplete }) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/log', {
+      await axios.post('/api/log', {
         hours: Number(hours),
         tasks: [task],
         category

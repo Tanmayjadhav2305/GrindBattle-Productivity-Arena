@@ -15,7 +15,7 @@ const JoinArena = ({ user, onJoined }) => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/room/create', { roomCode: code }, {
+      const res = await axios.post('/api/room/create', { roomCode: code }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onJoined(res.data.roomCode);
@@ -33,7 +33,7 @@ const JoinArena = ({ user, onJoined }) => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/room/join', { roomCode: code }, {
+      await axios.post('/api/room/join', { roomCode: code }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onJoined(code.toUpperCase());
