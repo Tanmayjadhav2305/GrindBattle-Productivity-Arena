@@ -16,9 +16,23 @@ const admin = require('firebase-admin');
 // Firebase Admin initialization
 try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT && !admin.apps.length) {
-    // Robust parsing: strip potential surrounding single quotes from Render/Env
-    const rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim().replace(/^'|'$/g, '');
-    const serviceAccount = JSON.parse(rawConfig);
+    let rawConfig = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    
+    // Support Base64 encoding (Recommended for Render)
+    if (!rawConfig.startsWith('{') && !rawConfig.startsWith("'") && !rawConfig.startsWith('"')) {
+      try {
+        rawConfig = Buffer.from(rawConfig, 'base64').toString('utf8');
+      } catch (e) {
+        console.error('Failed to decode Base64 FIREBASE_SERVICE_ACCOUNT');
+      }
+    }
+
+    if (rawConfig.startsWith("'") || rawConfig.startsWith('"')) {
+      rawConfig = rawConfig.substring(1, rawConfig.length - 1);
+    }
+    
+    const serviceAccount = JSON.parse(rawConfig.replace(/\\n/g, '\n'));
+    
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
