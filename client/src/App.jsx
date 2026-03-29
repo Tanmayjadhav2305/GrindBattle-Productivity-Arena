@@ -68,11 +68,27 @@ function App() {
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
         console.log('FCM Token registered on backend');
-        // Update local user state to reflect token presence
-        setUser(prev => ({ ...prev, hasNotifications: true }));
+        localStorage.setItem('fcmToken', token);
+        setUser(prev => ({ ...prev, hasNotifications: true, fcmTokens: [...(prev.fcmTokens || []), token] }));
       } catch (err) {
         console.error('Failed to register FCM token:', err);
       }
+    }
+  };
+
+  const disableNotifications = async () => {
+    try {
+      const fcmToken = localStorage.getItem('fcmToken');
+      const authToken = localStorage.getItem('token');
+      await axios.post('/api/auth/fcm-token/disable', 
+        { fcmToken }, 
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      localStorage.removeItem('fcmToken');
+      setUser(prev => ({ ...prev, hasNotifications: false, fcmTokens: [] }));
+      console.log('Notifications disabled successfully');
+    } catch (err) {
+      console.error('Failed to disable notifications:', err);
     }
   };
 
@@ -194,7 +210,11 @@ function App() {
               <p className="text-dim">Room Code: {roomCode}</p>
               
               <div className="profile-actions-clay mt-2">
-                {!user.hasNotifications && (
+                {user.hasNotifications ? (
+                  <button className="clay-btn secondary-btn" onClick={disableNotifications} style={{ background: 'var(--accent)' }}>
+                    🔕 Disable Notifications
+                  </button>
+                ) : (
                   <button className="clay-btn primary-btn" onClick={setupNotifications} style={{ background: 'var(--success)' }}>
                     🔔 Enable Notifications
                   </button>

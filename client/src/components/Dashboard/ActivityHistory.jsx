@@ -71,9 +71,16 @@ const ActivityHistory = ({ onClose }) => {
                     <Calendar size={14} />
                     <span>{formatDate(log.date)}</span>
                   </div>
-                  <div className="hour-badge">
-                    <Clock size={14} />
-                    <span>{(log.hours).toFixed(1)}h</span>
+                  <div className="stats-badges">
+                    {log.startTime && (
+                      <div className="time-badge">
+                        <span>{log.startTime} - {log.endTime || '??'}</span>
+                      </div>
+                    )}
+                    <div className="hour-badge">
+                      <Clock size={14} />
+                      <span>{(log.hours).toFixed(1)}h</span>
+                    </div>
                   </div>
                 </div>
 
@@ -116,9 +123,11 @@ const ActivityHistory = ({ onClose }) => {
           flex: 1; overflow-y: auto; padding-right: 0.5rem; 
           display: flex; flex-direction: column; gap: 1.2rem;
         }
-        .history-item { padding: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; border-radius: 1.5rem; }
-        .history-item-top { display: flex; justify-content: space-between; align-items: center; }
+        .history-item { padding: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; border-radius: 1.5rem; flex-shrink: 0; }
+        .history-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
         .date-badge { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: var(--clay-text-dim); }
+        .stats-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+        .time-badge { background: var(--clay-bg); color: var(--clay-text); padding: 0.2rem 0.6rem; border-radius: 0.8rem; font-size: 0.7rem; font-weight: 700; box-shadow: var(--clay-shadow-in); }
         .hour-badge { background: var(--primary); color: white; padding: 0.2rem 0.6rem; border-radius: 0.8rem; font-size: 0.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.3rem; }
         .category-pill { align-self: flex-start; background: var(--secondary); color: white; padding: 0.2rem 0.8rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
         .history-tasks { display: flex; gap: 0.6rem; align-items: flex-start; }

@@ -86,6 +86,10 @@ const io = new Server(server, {
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// --- PUBLIC HEALTH CHECK (CRON JOBS) ---
+app.get('/api/ping', (req, res) => res.status(200).send('pong 🏓'));
+
+
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 // Middleware to verify JWT
@@ -157,6 +161,21 @@ app.post('/api/auth/fcm-token', auth, async (req, res) => {
   }
 });
 
+app.post('/api/auth/fcm-token/disable', auth, async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    if (fcmToken) {
+      req.user.fcmTokens = req.user.fcmTokens.filter(t => t !== fcmToken);
+    } else {
+      req.user.fcmTokens = []; // Clear all if no specific token provided
+    }
+    await req.user.save();
+    res.json({ message: 'Notifications disabled' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- ROOM ROUTES ---
 
 app.post('/api/room/create', auth, async (req, res) => {
@@ -213,7 +232,7 @@ app.get('/api/dashboard', auth, async (req, res) => {
 });
 
 app.post('/api/log', auth, async (req, res) => {
-  const { hours, tasks, category } = req.body;
+  const { hours, tasks, category, startTime, endTime } = req.body;
   const today = new Date().toISOString().split('T')[0];
   const user = req.user;
 
@@ -237,6 +256,8 @@ app.post('/api/log', auth, async (req, res) => {
         hours: parseFloat(hours),
         tasks: Array.isArray(tasks) ? tasks : [],
         category,
+        startTime,
+        endTime,
         pointsEarned: pointsInitial
       });
       await log.save();

@@ -4,6 +4,8 @@ import { Clock, BookOpen, Send, CheckCircle } from 'lucide-react';
 
 const LogForm = ({ user, onComplete, setupNotifications }) => {
   const [hours, setHours] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [category, setCategory] = useState('Web Dev');
   const [task, setTask] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -17,7 +19,9 @@ const LogForm = ({ user, onComplete, setupNotifications }) => {
       await axios.post('/api/log', {
         hours: Number(hours),
         tasks: [task],
-        category
+        category,
+        startTime,
+        endTime
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -64,6 +68,25 @@ const LogForm = ({ user, onComplete, setupNotifications }) => {
             step="0.5"
           />
         </div>
+
+        <div className="time-row mt-1">
+          <div className="clay-field">
+            <label>Start Time</label>
+            <input 
+              type="time" 
+              value={startTime} 
+              onChange={(e) => setStartTime(e.target.value)} 
+            />
+          </div>
+          <div className="clay-field">
+            <label>End Time</label>
+            <input 
+              type="time" 
+              value={endTime} 
+              onChange={(e) => setEndTime(e.target.value)} 
+            />
+          </div>
+        </div>
         
         <div className="clay-field mt-1">
           <label><BookOpen size={16} /> Discipline</label>
@@ -93,8 +116,9 @@ const LogForm = ({ user, onComplete, setupNotifications }) => {
 
       <style dangerouslySetInnerHTML={{ __html: `
         .log-form-clay { padding: 2rem; }
-        .clay-field { display: flex; flex-direction: column; gap: 0.5rem; }
+        .clay-field { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
         .clay-field label { font-size: 0.8rem; font-weight: 700; color: var(--clay-text-dim); }
+        .time-row { display: flex; gap: 1rem; width: 100%; }
         input, select, textarea { 
           background: var(--clay-bg); 
           border: none; 
@@ -104,6 +128,7 @@ const LogForm = ({ user, onComplete, setupNotifications }) => {
           box-shadow: var(--clay-shadow-in); 
           outline: none;
           font-family: inherit;
+          width: 100%;
         }
         .w-full { width: 100%; }
         .mt-1 { margin-top: 1rem; }
