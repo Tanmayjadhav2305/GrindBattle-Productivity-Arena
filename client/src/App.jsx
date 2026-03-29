@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { requestForToken, onMessageListener } from './firebase';
@@ -57,7 +57,7 @@ function App() {
     fetchUser();
   }, []);
 
-  const setupNotifications = async () => {
+  const setupNotifications = useCallback(async () => {
     if (!user) return;
     const token = await requestForToken();
     if (token) {
@@ -74,9 +74,9 @@ function App() {
         console.error('Failed to register FCM token:', err);
       }
     }
-  };
+  }, [user]);
 
-  const disableNotifications = async () => {
+  const disableNotifications = useCallback(async () => {
     try {
       const fcmToken = localStorage.getItem('fcmToken');
       const authToken = localStorage.getItem('token');
@@ -90,7 +90,7 @@ function App() {
     } catch (err) {
       console.error('Failed to disable notifications:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     onMessageListener()
@@ -126,14 +126,15 @@ function App() {
       }
     };
     fetchDashboard();
-  }, [user, roomCode]);
+  }, [roomCode, user?._id]); // Only refetch if room changes OR current user ID changes
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('fcmToken');
     setUser(null);
     setRoomCode(null);
     setShowWelcome(true);
-  };
+  }, []);
 
   if (showWelcome) {
     return <Welcome onStart={() => setShowWelcome(false)} />;

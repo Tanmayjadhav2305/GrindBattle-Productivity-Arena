@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
-const CarRace = ({ players }) => {
-  const maxPoints = Math.max(...players.map(p => p.totalPoints), 100);
+const CarRace = React.memo(({ players }) => {
+  const maxPoints = useMemo(() => Math.max(...players.map(p => p.totalPoints), 100), [players]);
+
+  const markers = useMemo(() => {
+    const mks = [];
+    for(let m = 0; m <= maxPoints; m += 50) {
+      mks.push(m);
+    }
+    return mks;
+  }, [maxPoints]);
 
   return (
     <div className="clay-arena">
@@ -11,11 +19,6 @@ const CarRace = ({ players }) => {
           const progress = (player.totalPoints / maxPoints) * 100;
           const isLeader = player.totalPoints === maxPoints && player.totalPoints > 0;
           
-          // Generate markers every 50 points (5 hours)
-          const markers = [];
-          for(let m = 0; m <= maxPoints; m += 50) {
-            markers.push(m);
-          }
 
           return (
             <div key={player._id} className="racing-lane">
@@ -100,6 +103,6 @@ const CarRace = ({ players }) => {
       `}} />
     </div>
   );
-};
+});
 
 export default CarRace;
