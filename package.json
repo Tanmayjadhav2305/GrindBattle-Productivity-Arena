@@ -2,8 +2,10 @@
   "name": "grindbattle-monorepo",
   "version": "1.0.0",
   "scripts": {
-    "build": "npm install && cd client && npm install && npm run build",
+    "build": "npm install && (cd client && npm install && npm run build)",
+    "build ": "npm run build",
     "start": "node server/server.js",
+    "start ": "node server/server.js",
     "debug:files": "node server/server.js"
   },
   "dependencies": {
