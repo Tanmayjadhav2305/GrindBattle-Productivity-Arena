@@ -89,7 +89,10 @@ app.use(express.json());
 // --- PUBLIC HEALTH CHECK (CRON JOBS) ---
 app.get('/api/ping', (req, res) => res.status(200).send('pong 🏓'));
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn('⚠️ JWT_SECRET is missing! Authentication will FAIL.');
+}
 
 // Middleware to verify JWT
 const auth = async (req, res, next) => {
