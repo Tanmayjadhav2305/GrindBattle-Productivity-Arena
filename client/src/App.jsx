@@ -347,29 +347,15 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="desktop-sidebar">
-        <div className="sidebar-logo">DuelTrack</div>
-        <nav className="sidebar-nav-list">
-          {NAV_TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <div key={tab.id} className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-                <Icon size={22} />
-                <span>{tab.label}</span>
-              </div>
-            );
-          })}
-        </nav>
-        <div style={{ marginTop: 'auto' }}>
-          <button className="sidebar-item" onClick={handleLogout} style={{ width: '100%', border: 'none', background: 'transparent' }}>
-            <LogOut size={22} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      {/* Desktop Sidebar - Hidden on mobile via CSS class */}
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        onLogout={handleLogout} 
+        user={user} 
+      />
 
       <main className="content-area">
-        <ThemeToggle />
         <header className="dashboard-header">
           <div className="date-pill">
             <span className="day-text">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}</span>
@@ -377,7 +363,12 @@ function App() {
           </div>
           <div className="achievement-strip">
             {achievements.map(a => (
-              <motion.div key={a.id} className="mini-achievement shadow-in" whileHover={{ scale: 1.1 }} title={a.label}>
+              <motion.div 
+                key={a.id} 
+                className="mini-achievement" 
+                whileHover={{ scale: 1.1 }} 
+                title={a.label}
+              >
                 {a.icon}
               </motion.div>
             ))}
@@ -390,7 +381,7 @@ function App() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{ duration: 0.2 }}
             className={activeTab === 'arena' ? 'grid-layout' : ''}
           >
             {renderContent()}
@@ -403,11 +394,13 @@ function App() {
         </AnimatePresence>
       </main>
 
+      {/* Persistence/Popups */}
       <AnimatePresence>
         {showCustomizer && <AvatarCustomizer user={user} onUpdate={(u) => setUser(u)} onClose={() => setShowCustomizer(false)} />}
         {showHistory && <ActivityHistory onClose={() => setShowHistory(false)} />}
       </AnimatePresence>
 
+      <ThemeToggle />
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );

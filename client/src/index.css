@@ -78,14 +78,14 @@ body {
 
 /* Sidebar - Desktop Only */
 .desktop-sidebar {
-  display: none;
+  display: none !important; /* Force hide on mobile */
   width: 280px;
   height: 100vh;
   position: sticky;
   top: 0;
-  background: var(--clay-background);
+  background: var(--clay-bg);
   box-shadow: var(--clay-shadow-out);
-  padding: 2rem;
+  padding: 2.5rem 1.5rem;
   flex-direction: column;
   gap: 1.5rem;
   z-index: 2000;
@@ -134,7 +134,7 @@ body {
   }
   
   .desktop-sidebar {
-    display: flex;
+    display: flex !important; /* Show on desktop */
   }
   
   .content-area {
@@ -436,4 +436,54 @@ input:focus, select:focus, textarea:focus {
     width: 3rem;
     height: 3rem;
   }
+}
+
+/* Bottom Navigation - Mobile Only */
+.bottom-nav {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  height: 4.5rem;
+  background: var(--clay-card);
+  border-radius: 1.5rem;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: var(--clay-shadow-out);
+  z-index: 1000;
+  padding: 0 1rem;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--clay-text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-icon-wrapper {
+  padding: 0.5rem;
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+}
+
+.nav-item.active .nav-icon-wrapper {
+  background: var(--clay-bg);
+  box-shadow: var(--clay-shadow-in);
+}
+
+.nav-item span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02rem;
 }
