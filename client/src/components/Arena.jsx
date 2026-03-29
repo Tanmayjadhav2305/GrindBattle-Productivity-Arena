@@ -5,9 +5,9 @@ import CarRace from './Visualization/CarRace';
 import { Trophy, Users } from 'lucide-react';
 
 const Arena = ({ user, data }) => {
-  const opponent = data.find(u => u.username !== user.username);
-  const currentUser = data.find(u => u.username === user.username) || user;
-  const pointsDiff = currentUser.totalPoints - (opponent?.totalPoints || 0);
+  const opponent = data.find(u => u._id !== user._id);
+  const currentUser = data.find(u => u._id === user._id) || user;
+  const pointsDiff = (currentUser.totalPoints || 0) - (opponent?.totalPoints || 0);
 
   return (
     <div className="arena-page">

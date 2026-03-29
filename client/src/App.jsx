@@ -37,6 +37,7 @@ function App() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('arena');
+  const [loadingNotification, setLoadingNotification] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -59,20 +60,31 @@ function App() {
 
   const setupNotifications = useCallback(async () => {
     if (!user) return;
-    const token = await requestForToken();
-    if (token) {
-      try {
+    setLoadingNotification(true);
+    console.log('--- STARTING NOTIFICATION SETUP ---');
+    try {
+      const token = await requestForToken();
+      if (token) {
         const authToken = localStorage.getItem('token');
         await axios.post('/api/auth/fcm-token', 
           { fcmToken: token }, 
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
-        console.log('FCM Token registered on backend');
+        console.log('✅ FCM Token registered on backend');
         localStorage.setItem('fcmToken', token);
-        setUser(prev => ({ ...prev, hasNotifications: true, fcmTokens: [...(prev.fcmTokens || []), token] }));
-      } catch (err) {
-        console.error('Failed to register FCM token:', err);
+        setUser(prev => ({ 
+          ...prev, 
+          hasNotifications: true, 
+          fcmTokens: [...new Set([...(prev.fcmTokens || []), token])] 
+        }));
+      } else {
+        console.warn('⚠️ No token received from Firebase');
       }
+    } catch (err) {
+      console.error('❌ Failed to setup notifications:', err);
+      alert('Could not enable notifications. Please ensure you are over HTTPS and have allowed permissions.');
+    } finally {
+      setLoadingNotification(false);
     }
   }, [user]);
 
@@ -212,12 +224,12 @@ function App() {
               
               <div className="profile-actions-clay mt-2">
                 {user.hasNotifications ? (
-                  <button className="clay-btn secondary-btn" onClick={disableNotifications} style={{ background: 'var(--accent)' }}>
-                    🔕 Disable Notifications
+                  <button className="clay-btn secondary-btn" onClick={disableNotifications} style={{ background: 'var(--accent)' }} disabled={loadingNotification}>
+                    {loadingNotification ? '⏳ Processing...' : '🔕 Disable Notifications'}
                   </button>
                 ) : (
-                  <button className="clay-btn primary-btn" onClick={setupNotifications} style={{ background: 'var(--success)' }}>
-                    🔔 Enable Notifications
+                  <button className="clay-btn primary-btn" onClick={setupNotifications} style={{ background: 'var(--success)' }} disabled={loadingNotification}>
+                    {loadingNotification ? '⏳ Processing...' : '🔔 Enable Notifications'}
                   </button>
                 )}
                 <button className="clay-btn primary-btn" onClick={() => setShowCustomizer(true)}>
