@@ -89,6 +89,31 @@ app.use(express.json());
 // --- PUBLIC HEALTH CHECK (CRON JOBS) ---
 app.get('/api/ping', (req, res) => res.status(200).send('pong 🏓'));
 
+app.get('/api/debug-files', (req, res) => {
+  const fs = require('fs');
+  const getAllFiles = (dirPath, arrayOfFiles) => {
+    const files = fs.readdirSync(dirPath);
+    arrayOfFiles = arrayOfFiles || [];
+    files.forEach((file) => {
+      if (fs.statSync(dirPath + "/" + file).isDirectory()) {
+        if (!file.includes('node_modules') && !file.includes('.git')) {
+          arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
+        }
+      } else {
+        arrayOfFiles.push(path.join(dirPath, "/", file));
+      }
+    });
+    return arrayOfFiles;
+  };
+  try {
+    const root = path.join(__dirname, '..');
+    const files = getAllFiles(root);
+    res.json({ root, files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
