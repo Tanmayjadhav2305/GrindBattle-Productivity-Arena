@@ -7,7 +7,9 @@
     "install:all": "npm run install:client && npm run install:server",
     "build:client": "cd client && npm run build",
     "build": "npm install && npm run install:all && npm run build:client",
-    "start": "node server/server.js"
+    "postbuild": "echo 'Post-build file listing:' && ls -R client/dist || echo 'Build folder missing!'",
+    "start": "node server/server.js",
+    "clean": "rm -rf client/dist server/dist"
   },
   "dependencies": {
     "vercel": "^50.37.1"
