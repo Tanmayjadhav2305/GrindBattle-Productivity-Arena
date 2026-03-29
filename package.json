@@ -2,9 +2,11 @@
   "name": "grindbattle-monorepo",
   "version": "1.0.0",
   "scripts": {
-    "install:all": "npm install --prefix client && npm install --prefix server",
-    "build:client": "npm run build --prefix client",
-    "build": "npm run install:all && npm run build:client",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "install:all": "npm run install:client && npm run install:server",
+    "build:client": "cd client && npm run build",
+    "build": "npm install && npm run install:all && npm run build:client",
     "start": "node server/server.js"
   },
   "dependencies": {

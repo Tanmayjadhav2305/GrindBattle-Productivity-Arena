@@ -418,7 +418,14 @@ app.use(express.static(clientBuildPath));
 app.get('*', (req, res) => {
   const indexPath = path.join(clientBuildPath, 'index.html');
   const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
+  console.log('--- STARTUP CHECK ---');
+console.log('Current directory (__dirname):', __dirname);
+console.log('Target clientBuildPath:', clientBuildPath);
+console.log('Target indexPath:', indexPath);
+console.log('Index file exists:', fs.existsSync(indexPath));
+console.log('---------------------');
+
+if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
     res.status(404).send(`
