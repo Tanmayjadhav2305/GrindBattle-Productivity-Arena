@@ -61,7 +61,7 @@ body {
 .app-shell {
   min-height: 100vh;
   display: flex;
-  flex-direction: row; /* Default for desktop-first or flex-column for mobile */
+  flex-direction: column; /* Mobile Default */
 }
 
 .content-area {

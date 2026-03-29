@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import { requestForToken, onMessageListener } from './firebase';
 import BottomNav from './components/Navigation/BottomNav';
+import Sidebar from './components/Navigation/Sidebar';
 import Login from './components/Login';
 import Register from './components/Auth/Register';
 import JoinArena from './components/Arena/JoinArena';
