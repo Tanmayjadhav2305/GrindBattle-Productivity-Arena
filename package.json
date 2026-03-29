@@ -2,14 +2,9 @@
   "name": "grindbattle-monorepo",
   "version": "1.0.0",
   "scripts": {
-    "install:client": "cd client && npm install",
-    "install:server": "cd server && npm install",
-    "install:all": "npm run install:client && npm run install:server",
-    "build:client": "cd client && npm run build",
-    "build": "npm install && npm run install:all && npm run build:client",
-    "postbuild": "echo 'Post-build file listing:' && ls -R client/dist || echo 'Build folder missing!'",
+    "build": "npm install && cd client && npm install && npm run build",
     "start": "node server/server.js",
-    "clean": "rm -rf client/dist server/dist"
+    "debug:files": "node server/server.js"
   },
   "dependencies": {
     "vercel": "^50.37.1"
