@@ -15,21 +15,31 @@ const messaging = getMessaging(app);
 
 export const requestForToken = async () => {
   try {
-    // Explicitly register the service worker we consolidated (sw.js)
+    // 1. Explicitly check/request for permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('Notification permission denied');
+      return null;
+    }
+
+    // 2. Register service worker
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.register('/sw.js');
+      
+      // 3. Get FCM Token
       const currentToken = await getToken(messaging, { 
         vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
         serviceWorkerRegistration: registration
       });
+
       if (currentToken) {
-        console.log('FCM Token generated:', currentToken);
+        console.log('✅ FCM Token generated:', currentToken);
         return currentToken;
       }
     }
     return null;
   } catch (err) {
-    console.log('An error occurred while retrieving token. ', err);
+    console.error('❌ Messaging Error:', err);
     return null;
   }
 };

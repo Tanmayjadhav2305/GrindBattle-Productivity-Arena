@@ -67,11 +67,12 @@ try {
       });
       console.log('🔥 FIREBASE ADMIN INITIALIZED 🔥');
     } else {
-      console.warn('⚠️ FIREBASE credentials not found. Notifications disabled.');
+      console.warn('⚠️ FIREBASE: Credentials missing! Notifications are DISABLED.');
+      console.log('💡 TIP: Set FIREBASE_SERVICE_ACCOUNT_BASE64 or individual vars in Render.');
     }
   }
 } catch (err) {
-  console.error('❌ FIREBASE INITIALIZATION ERROR:', err.message);
+  console.error('❌ FIREBASE: Initialization failed:', err.message);
 }
 
 const app = express();
@@ -343,6 +344,29 @@ app.get('/api/history', auth, async (req, res) => {
   }
 });
 
+// --- TEST NOTIFICATION ROUTE ---
+app.post('/api/test-notification', auth, async (req, res) => {
+  if (admin.apps.length === 0) {
+    return res.status(503).json({ error: 'Firebase Admin not initialized' });
+  }
+  
+  const token = req.user.fcmTokens[req.user.fcmTokens.length - 1];
+  if (!token) return res.status(400).json({ error: 'No FCM token found for user' });
+
+  try {
+    await admin.messaging().send({
+      notification: { 
+        title: '🧪 Test Notification', 
+        body: 'If you see this, your notification system is working!' 
+      },
+      token: token
+    });
+    res.json({ message: 'Test notification sent!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Socket logic
 io.on('connection', (socket) => {
   socket.on('join_room', (roomCode) => {
@@ -369,9 +393,21 @@ const PORT = process.env.PORT || 5000;
 const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath));
 
-// Catch-all route to serve the React app for any other request
+// Catch-all route with defensive check
 app.get('*', (req, res) => {
-  res.sendFile(path.join(clientBuildPath, 'index.html'));
+  const indexPath = path.join(clientBuildPath, 'index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send(`
+      <div style="padding: 2rem; font-family: sans-serif; text-align: center;">
+        <h1>🚀 Deployment in Progress</h1>
+        <p>The frontend build is currently missing. Please check your Render build logs.</p>
+        <p>Missing path: <code>${indexPath}</code></p>
+      </div>
+    `);
+  }
 });
 
 server.listen(PORT, () => console.log(`🛡️ BATTLE STATION ACTIVE ON PORT ${PORT} 🛡️`));

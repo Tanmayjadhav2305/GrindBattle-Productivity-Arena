@@ -16,7 +16,9 @@ messaging.onBackgroundMessage((payload) => {
   const options = {
     body: payload.notification?.body || 'New activity logged!',
     icon: '/grind_battle_pwa_icon.png',
-    badge: '/grind_battle_pwa_icon.png'
+    badge: '/grind_battle_pwa_icon.png',
+    tag: 'arena-update',
+    renotify: true
   };
   self.registration.showNotification(title, options);
 });
@@ -85,6 +87,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Skip caching for API calls and Socket.io
+  if (event.request.url.includes('/api/') || event.request.url.includes('socket.io')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
