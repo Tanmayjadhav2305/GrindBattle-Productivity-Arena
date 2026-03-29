@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { requestForToken, onMessageListener } from './firebase';
@@ -13,14 +13,31 @@ import AvatarCustomizer from './components/Dashboard/AvatarCustomizer';
 import ActivityHistory from './components/Dashboard/ActivityHistory';
 import ThemeToggle from './components/Common/ThemeToggle';
 import Welcome from './components/Welcome';
+import { Trophy, Home, PlusCircle, User, BarChart2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-const socket = io(API_URL);
-axios.defaults.baseURL = API_URL;
+// 1. Production-Safe Configuration Validation
+const VITE_API_URL = import.meta.env.VITE_API_URL;
+
+// Global Axios Defaults
+if (VITE_API_URL) {
+  axios.defaults.baseURL = VITE_API_URL;
+  // Global response interceptor for session expiry
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        console.error('🔴 Session expired or unauthorized');
+        // We handle actual logout in the component level to avoid loops
+      }
+      return Promise.reject(error);
+    }
+  );
+}
 
 const getAchievements = (user) => {
+  if (!user) return [];
   const achievements = [];
   if (user.currentStreak >= 7) achievements.push({ id: 'warrior-7', label: '7-Day Warrior', icon: '🔥' });
   if (user.totalPoints >= 1000) achievements.push({ id: 'points-1k', label: 'Point Pioneer', icon: '💎' });
@@ -28,7 +45,15 @@ const getAchievements = (user) => {
   return achievements;
 };
 
+const NAV_TABS = [
+  { id: 'arena', label: 'Arena', icon: Trophy },
+  { id: 'my-stats', label: 'My Stats', icon: BarChart2 },
+  { id: 'log', label: 'Log Progress', icon: PlusCircle },
+  { id: 'profile', label: 'Profile', icon: User },
+];
+
 function App() {
+  const [isBooting, setIsBooting] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
   const [user, setUser] = useState(null);
   const [isRegister, setIsRegister] = useState(false);
@@ -38,152 +63,236 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('arena');
   const [loadingNotification, setLoadingNotification] = useState(false);
+  const [configError, setConfigError] = useState(!VITE_API_URL);
+
+  // 2. Production-Safe Socket Management
+  const socketRef = useRef(null);
 
   useEffect(() => {
+    if (!VITE_API_URL) return;
+
+    try {
+      socketRef.current = io(VITE_API_URL, {
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      socketRef.current.on('connect_error', (err) => {
+        console.error('🔌 Socket Connection Error:', err.message);
+      });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      };
+    } catch (err) {
+      console.error('❌ Failed to initialize Socket:', err);
+    }
+  }, []);
+
+  // 3. Safe LocalStorage Wrappers
+  const safeGetItem = (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (err) {
+      console.error(`💾 LocalStorage read error (${key}):`, err);
+      return null;
+    }
+  };
+
+  const safeRemoveItem = (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (err) {
+      console.error(`💾 LocalStorage remove error (${key}):`, err);
+    }
+  };
+
+  // 4. Session Restoration Effect
+  useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
+      const token = safeGetItem('token');
+      if (token && VITE_API_URL) {
         try {
           const res = await axios.get('/api/auth/me', {
             headers: { Authorization: `Bearer ${token}` }
           });
-          setUser(res.data.user);
-          setShowWelcome(false);
+          if (res.data?.user) {
+            setUser(res.data.user);
+            setShowWelcome(false);
+          } else {
+             throw new Error('Invalid user data received');
+          }
         } catch (err) {
-          console.error('Session restoration failed:', err);
-          handleLogout();
+          console.error('🔑 Session restoration failed:', err.message);
+          safeRemoveItem('token'); 
         }
       }
+      setIsBooting(false);
     };
     fetchUser();
   }, []);
 
+  // 5. Room Code Sync Effect
+  useEffect(() => {
+    if (user?.roomCode && !roomCode) {
+      setRoomCode(user.roomCode);
+    }
+  }, [user?.roomCode, roomCode]);
+
+  // 6. Notification Handlers
   const setupNotifications = useCallback(async () => {
-    if (!user) return;
+    if (!user || !VITE_API_URL) return;
     setLoadingNotification(true);
-    console.log('--- STARTING NOTIFICATION SETUP ---');
     try {
       const token = await requestForToken();
       if (token) {
-        const authToken = localStorage.getItem('token');
+        const authToken = safeGetItem('token');
         await axios.post('/api/auth/fcm-token', 
           { fcmToken: token }, 
           { headers: { Authorization: `Bearer ${authToken}` } }
         );
-        console.log('✅ FCM Token registered on backend');
-        localStorage.setItem('fcmToken', token);
+        try { localStorage.setItem('fcmToken', token); } catch(e) {}
         setUser(prev => ({ 
           ...prev, 
           hasNotifications: true, 
-          fcmTokens: [...new Set([...(prev.fcmTokens || []), token])] 
+          fcmTokens: [...new Set([...(prev?.fcmTokens || []), token])] 
         }));
-      } else {
-        console.warn('⚠️ No token received from Firebase');
       }
     } catch (err) {
-      console.error('❌ Failed to setup notifications:', err);
-      alert('Could not enable notifications. Please ensure you are over HTTPS and have allowed permissions.');
+      console.error('🔔 Notification Setup Error:', err);
     } finally {
       setLoadingNotification(false);
     }
   }, [user]);
 
   const disableNotifications = useCallback(async () => {
+    if (!VITE_API_URL) return;
     try {
-      const fcmToken = localStorage.getItem('fcmToken');
-      const authToken = localStorage.getItem('token');
+      const fcmToken = safeGetItem('fcmToken');
+      const authToken = safeGetItem('token');
       await axios.post('/api/auth/fcm-token/disable', 
         { fcmToken }, 
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
-      localStorage.removeItem('fcmToken');
+      safeRemoveItem('fcmToken');
       setUser(prev => ({ ...prev, hasNotifications: false, fcmTokens: [] }));
-      console.log('Notifications disabled successfully');
     } catch (err) {
-      console.error('Failed to disable notifications:', err);
+      console.error('🔕 Notification Disable Error:', err);
     }
   }, []);
 
   useEffect(() => {
-    onMessageListener()
-      .then((payload) => {
-        console.log('New foreground message:', payload);
-      })
-      .catch((err) => console.log('Messaging failed: ', err));
-  }, []);
-
-  useEffect(() => {
-    if (roomCode) {
-      socket.emit('join_room', roomCode);
-      socket.on('update_dashboard', (data) => {
-        setDashboardData(data);
-      });
-    }
-    return () => {
-      socket.off('update_dashboard');
+    const initNotifications = async () => {
+      try {
+        const payload = await onMessageListener();
+        if (payload) console.log('📨 Foreground Message:', payload);
+      } catch (err) {
+        // Suppress expected "not supported" logs unless debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('ℹ️ Messaging listener inactive:', err.message);
+        }
+      }
     };
+    initNotifications();
+  }, []);
+
+  // 7. Socket & Data Sync Effect
+  useEffect(() => {
+    const s = socketRef.current;
+    if (roomCode && s) {
+      s.emit('join_room', roomCode);
+      const handleUpdate = (data) => {
+        if (Array.isArray(data)) setDashboardData(data);
+      };
+      s.on('update_dashboard', handleUpdate);
+      return () => {
+        s.off('update_dashboard', handleUpdate);
+      };
+    }
   }, [roomCode]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
-      if (!user || !roomCode) return;
+      if (!user?._id || !roomCode || !VITE_API_URL) return;
       try {
-        const token = localStorage.getItem('token');
+        const token = safeGetItem('token');
         const res = await axios.get('/api/dashboard', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setDashboardData(res.data);
+        if (Array.isArray(res.data)) setDashboardData(res.data);
       } catch (err) {
-        console.error(err);
+        console.error('📊 Dashboard Sync Error:', err.message);
       }
     };
     fetchDashboard();
-  }, [roomCode, user?._id]); // Only refetch if room changes OR current user ID changes
+  }, [roomCode, user?._id]);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('fcmToken');
-    setUser(null);
-    setRoomCode(null);
-    setShowWelcome(true);
+    try {
+      localStorage.clear();
+      setUser(null);
+      setRoomCode(null);
+      setShowWelcome(true);
+      window.location.reload(); 
+    } catch (err) {
+      window.location.href = '/'; // Hard fallback
+    }
   }, []);
 
-  if (showWelcome) {
+  // Memoized derived data
+  const userData = useMemo(() => {
+    return dashboardData.find(u => u._id === user?._id) || user;
+  }, [dashboardData, user]);
+
+  const achievements = useMemo(() => getAchievements(userData), [userData]);
+
+  // 8. Error & Fallback Rendering
+  if (configError) {
+    return (
+      <div className="fatal-error-screen">
+        <div className="clay-card error-card">
+          <AlertTriangle size={60} color="var(--accent)" />
+          <h1 className="cartoon-title">Configuration Error</h1>
+          <p className="text-dim">The arena secret (API_URL) is missing. Please check your environment setup.</p>
+          <button className="clay-btn clay-btn-primary mt-2" onClick={() => window.location.reload()}>
+            <RefreshCw size={20} /> RETRY CONNECTION
+          </button>
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .fatal-error-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: var(--clay-bg); padding: 2rem; }
+          .error-card { max-width: 440px; text-align: center; padding: 3rem; }
+        `}} />
+      </div>
+    );
+  }
+
+  if (isBooting || showWelcome) {
     return <Welcome onStart={() => setShowWelcome(false)} />;
   }
 
   if (!user) {
     return (
-      <div className="app-shell centering-layout">
+      <div className="auth-fullscreen">
         <ThemeToggle />
-        <div className="auth-wrapper">
+        <div className="auth-content">
           {isRegister ? (
-            <Register 
-              onLogin={setUser} 
-              onSwitch={() => setIsRegister(false)} 
-              onBack={() => setShowWelcome(true)}
-            />
+            <Register onLogin={setUser} onSwitch={() => setIsRegister(false)} onBack={() => setShowWelcome(true)} />
           ) : (
-            <Login 
-              onLogin={setUser} 
-              onSwitch={() => setIsRegister(true)} 
-              onBack={() => setShowWelcome(true)}
-            />
+            <Login onLogin={setUser} onSwitch={() => setIsRegister(true)} onBack={() => setShowWelcome(true)} />
           )}
         </div>
-        <style dangerouslySetInnerHTML={{ __html: `
-          .centering-layout { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; }
-          .auth-wrapper { width: 100%; max-width: 440px; display: flex; justify-content: center; align-items: center; }
-        `}} />
       </div>
     );
   }
 
   if (!roomCode && !user.roomCode) {
     return (
-      <div className="app-shell centering-layout">
+      <div className="auth-fullscreen">
         <ThemeToggle />
-        <div className="auth-wrapper">
+        <div className="auth-content">
           <JoinArena 
             user={user} 
             onJoined={(code) => {
@@ -195,10 +304,6 @@ function App() {
       </div>
     );
   }
-
-  if (!roomCode && user.roomCode) setRoomCode(user.roomCode);
-
-  const userData = dashboardData.find(u => u._id === user._id) || user;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -213,34 +318,23 @@ function App() {
           <div className="clay-card p-3">
             <div style={{ textAlign: 'center' }}>
               <div className="avatar-large-wrapper floating">
-                <img 
-                  src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user.avatarSeed || user._id}`} 
-                  alt="Avatar" 
-                  className="dicebear-avatar-img"
-                />
+                <img src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${user.avatarSeed || user._id}`} alt="Avatar" className="dicebear-avatar-img" />
               </div>
               <h2 className="cartoon-title">{user.name}</h2>
               <p className="text-dim">Room Code: {roomCode}</p>
               
               <div className="profile-actions-clay mt-2">
-                {user.hasNotifications ? (
-                  <button className="clay-btn secondary-btn" onClick={disableNotifications} style={{ background: 'var(--accent)' }} disabled={loadingNotification}>
-                    {loadingNotification ? '⏳ Processing...' : '🔕 Disable Notifications'}
-                  </button>
-                ) : (
-                  <button className="clay-btn primary-btn" onClick={setupNotifications} style={{ background: 'var(--success)' }} disabled={loadingNotification}>
-                    {loadingNotification ? '⏳ Processing...' : '🔔 Enable Notifications'}
-                  </button>
-                )}
-                <button className="clay-btn primary-btn" onClick={() => setShowCustomizer(true)}>
-                  🌟 Customize Identity
+                <button 
+                  className="clay-btn" 
+                  onClick={user.hasNotifications ? disableNotifications : setupNotifications} 
+                  style={{ background: user.hasNotifications ? 'var(--accent)' : 'var(--success)' }} 
+                  disabled={loadingNotification}
+                >
+                  {loadingNotification ? '⏳' : (user.hasNotifications ? '🔕 Disable Notifications' : '🔔 Enable Notifications')}
                 </button>
-                <button className="clay-btn secondary-btn" onClick={() => setShowHistory(true)}>
-                  📜 View History
-                </button>
-                <button className="clay-btn logout-btn" onClick={() => { localStorage.clear(); window.location.reload(); }}>
-                  🚪 Logout
-                </button>
+                <button className="clay-btn primary-btn" onClick={() => setShowCustomizer(true)}>🌟 Customize Identity</button>
+                <button className="clay-btn secondary-btn" onClick={() => setShowHistory(true)}>📜 View History</button>
+                <button className="clay-btn logout-btn" onClick={handleLogout}>🚪 Logout</button>
               </div>
             </div>
           </div>
@@ -252,21 +346,37 @@ function App() {
 
   return (
     <div className="app-shell">
-      <ThemeToggle />
+      <aside className="desktop-sidebar">
+        <div className="sidebar-logo">DuelTrack</div>
+        <nav className="sidebar-nav-list">
+          {NAV_TABS.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <div key={tab.id} className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                <Icon size={22} />
+                <span>{tab.label}</span>
+              </div>
+            );
+          })}
+        </nav>
+        <div style={{ marginTop: 'auto' }}>
+          <button className="sidebar-item" onClick={handleLogout} style={{ width: '100%', border: 'none', background: 'transparent' }}>
+            <LogOut size={22} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
       <main className="content-area">
+        <ThemeToggle />
         <header className="dashboard-header">
           <div className="date-pill">
             <span className="day-text">{new Date().toLocaleDateString('en-US', { weekday: 'long' })}</span>
             <span className="date-text">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
           </div>
           <div className="achievement-strip">
-            {getAchievements(userData).map(a => (
-              <motion.div 
-                key={a.id} 
-                className="mini-achievement shadow-in"
-                whileHover={{ scale: 1.1 }}
-                title={a.label}
-              >
+            {achievements.map(a => (
+              <motion.div key={a.id} className="mini-achievement shadow-in" whileHover={{ scale: 1.1 }} title={a.label}>
                 {a.icon}
               </motion.div>
             ))}
@@ -276,51 +386,28 @@ function App() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className={activeTab === 'arena' ? 'grid-layout' : ''}
           >
             {renderContent()}
+            {activeTab === 'arena' && (
+              <div className="desktop-only-stats">
+                <PersonalStats user={userData} compact />
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </main>
 
       <AnimatePresence>
-        {showCustomizer && (
-          <AvatarCustomizer 
-            user={user} 
-            onUpdate={(updatedUser) => setUser(updatedUser)} 
-            onClose={() => setShowCustomizer(false)} 
-          />
-        )}
-        {showHistory && (
-          <ActivityHistory onClose={() => setShowHistory(false)} />
-        )}
+        {showCustomizer && <AvatarCustomizer user={user} onUpdate={(u) => setUser(u)} onClose={() => setShowCustomizer(false)} />}
+        {showHistory && <ActivityHistory onClose={() => setShowHistory(false)} />}
       </AnimatePresence>
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
-      
-      <style dangerouslySetInnerHTML={{ __html: `
-        .content-area { padding-bottom: 8rem; min-height: 100vh; overflow-y: auto; }
-        .dashboard-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; margin-bottom: 1rem; }
-        .date-pill { background: var(--clay-card); padding: 0.6rem 1.2rem; border-radius: 1.5rem; box-shadow: var(--clay-shadow-out); display: flex; gap: 0.5rem; font-weight: 800; font-size: 0.85rem; }
-        .day-text { color: var(--primary); }
-        .date-text { color: var(--clay-text-dim); }
-        
-        .avatar-large-wrapper { width: 12rem; height: 12rem; background: var(--clay-bg); border-radius: 3rem; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; padding: 1rem; box-shadow: var(--clay-shadow-out); }
-        .dicebear-avatar-img { width: 100%; height: 100%; object-fit: contain; }
-
-        .achievement-strip { display: flex; gap: 0.6rem; }
-        .mini-achievement { width: 2.5rem; height: 2.5rem; background: var(--clay-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: var(--clay-shadow-in); }
-
-        .avatar-large { font-size: 5rem; margin: 1rem 0; }
-        .p-3 { padding: 3rem; }
-        .mt-2 { margin-top: 2rem; }
-        .profile-actions-clay { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 300px; margin: 2rem auto 0; }
-        .secondary-btn { background: var(--secondary); color: white; }
-        .logout-btn { background: var(--accent); color: white; }
-      `}} />
     </div>
   );
 }

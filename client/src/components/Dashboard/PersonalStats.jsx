@@ -3,13 +3,39 @@ import AdvancedCharts from '../Analytics/AdvancedCharts';
 import { Flame, Zap, TrendingUp, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const PersonalStats = ({ user }) => {
+const PersonalStats = ({ user, compact = false }) => {
   const cards = [
     { label: 'Total Hours', value: (user.totalPoints / 10).toFixed(1), icon: Zap, color: '#fbc531', suffix: 'h' },
     { label: 'Weekly Trophies', value: user.weeklyTrophies || 0, icon: Trophy, color: '#f9ca24', suffix: '' },
     { label: 'Current Streak', value: user.currentStreak, icon: Flame, color: '#e84118', suffix: 'days' },
     { label: 'Momentum', value: user.momentum, icon: TrendingUp, color: '#00a8ff', suffix: '' },
   ];
+
+  if (compact) {
+    return (
+      <div className="personal-stats-clay compact">
+        <div className="clay-stats-stack">
+          {cards.map((card, i) => (
+            <div key={i} className="clay-card stat-clay-card-compact">
+              <div className="stat-icon-box-small" style={{ background: card.color }}>
+                <card.icon size={18} color="white" />
+              </div>
+              <div className="stat-content-box">
+                <span className="label-cartoon-small">{card.label}</span>
+                <span className="value-cartoon-small" style={{ color: card.color }}>{card.value}{card.suffix}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .stat-clay-card-compact { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 1.5rem; }
+          .stat-icon-box-small { width: 2.5rem; height: 2.5rem; border-radius: 0.8rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+          .label-cartoon-small { font-size: 0.7rem; font-weight: 700; color: var(--clay-text-dim); text-transform: uppercase; }
+          .value-cartoon-small { font-size: 1.2rem; font-weight: 800; }
+        `}} />
+      </div>
+    );
+  }
 
   return (
     <div className="personal-stats-clay">

@@ -156,57 +156,6 @@ const JoinArena = ({ user, onJoined }) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .arena-hub { width: 100%; display: flex; justify-content: center; align-items: center; min-height: 80vh; padding: 1.5rem; }
-        .hub-container { width: 100%; max-width: 800px; text-align: center; }
-        .hub-title { font-size: 2.8rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--clay-text); }
-        .hub-subtitle { color: var(--clay-text-dim); margin-bottom: 3rem; font-weight: 600; }
-        
-        .hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-        @media (max-width: 600px) { .hub-grid { grid-template-columns: 1fr; } }
-        
-        .hub-card { 
-          background: var(--clay-card); 
-          border: none; 
-          border-radius: 2.5rem; 
-          padding: 3rem 2rem; 
-          box-shadow: var(--clay-shadow-out); 
-          cursor: pointer; 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          text-align: center;
-          transition: all 0.3s ease;
-        }
-        .hub-card h3 { font-size: 1.8rem; font-weight: 900; margin: 1.5rem 0 0.5rem; color: var(--clay-text); }
-        .hub-card p { font-size: 0.95rem; color: var(--clay-text-dim); line-height: 1.4; margin-bottom: 2rem; flex-grow: 1; }
-        .hub-card-icon { width: 6rem; height: 6rem; background: var(--clay-bg); border-radius: 2rem; display: flex; align-items: center; justify-content: center; box-shadow: var(--clay-shadow-in); color: var(--primary); }
-        
-        .hub-card-action { 
-          background: var(--primary); 
-          color: white; 
-          padding: 1rem 2rem; 
-          border-radius: 1.2rem; 
-          font-weight: 900; 
-          font-size: 0.9rem; 
-          box-shadow: 0 10px 20px var(--primary-shadow);
-        }
-        
-        .host-card:hover .hub-card-icon { color: var(--accent); }
-        .join-card:hover .hub-card-icon { color: #2ecc71; }
-        
-        .hub-join-container { width: 100%; max-width: 400px; text-align: center; }
-        .hub-back-btn { background: none; border: none; color: var(--clay-text-dim); font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.9rem; }
-        .hub-join-card { padding: 4rem 2rem 3rem; }
-        .hub-card-icon-mini { font-size: 3rem; margin-bottom: 2rem; color: var(--primary); display: flex; justify-content: center; }
-        .hub-code-input { width: 100%; background: var(--clay-bg); border: none; box-shadow: var(--clay-shadow-in); padding: 1.2rem; border-radius: 1.5rem; font-size: 2.5rem; font-weight: 900; text-align: center; letter-spacing: 0.8rem; color: var(--primary); outline: none; margin-top: 1.5rem; }
-        
-        .hub-error { color: var(--accent); margin-top: 2rem; font-weight: 800; }
-        .hub-error-mini { color: var(--accent); margin-top: 1rem; font-weight: 700; font-size: 0.85rem; }
-        .mt-2 { margin-top: 2rem; }
-        .w-full { width: 100%; }
-      `}} />
     </div>
   );
 };
