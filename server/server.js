@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
@@ -361,4 +363,16 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 const PORT = process.env.PORT || 5000;
+
+// --- STATIC FILE SERVING (FOR PRODUCTION) ---
+// Serve static files from the React frontend build
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+
+// Catch-all route to serve the React app for any other request
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
 server.listen(PORT, () => console.log(`🛡️ BATTLE STATION ACTIVE ON PORT ${PORT} 🛡️`));
+
